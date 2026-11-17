@@ -1,4 +1,4 @@
-"""CPU-only final audit, paired statistics, figures and project deliverables."""
+"""CPU-only final audit, paired statistics, figures and experiment report."""
 from __future__ import annotations
 
 import argparse
@@ -315,8 +315,7 @@ def main():
     print('配对统计完成，正在生成11张图和报告。', flush=True)
     charts = make_figures(result, output / 'figures')
     write_report(PROJECT_ROOT, result, charts)
-    from src.evaluation.ablation_materials import write_project_materials
-    write_project_materials(PROJECT_ROOT, result)
+    write_error_cases(PROJECT_ROOT, output)
     result.update(recorded_at_utc=utc_now(), acceptance_grade='B', selected_resume_version='B',
                   acceptance_scope='bounded controlled mechanism replication; E2 stopped at 30; single seed; no claim DAPO statistically beats GRPO')
     write_json(output / 'results.json', result)
@@ -326,22 +325,40 @@ def main():
                'figures_created': len(charts), 'selected_resume_version': 'B',
                'limitations': ['E2 has 30 not 100 steps', 'one seed', 'GSM8K train-reserved not official test',
                                'cost matches leave residual budget', 'no standalone E5 length-reward ablation']})
-    manifest_files = charts + [output / n for n in ['final_report.md', 'results.json', 'acceptance.json', 'ablation_summary.csv', 'paired_comparisons.csv', 'error_cases.jsonl', 'materials_identity.json']]
-    manifest_files += [PROJECT_ROOT / 'README.md', PROJECT_ROOT / 'docs/resume_materials.md', PROJECT_ROOT / 'docs/interview_guide.md']
+    manifest_files = charts + [output / n for n in ['final_report.md', 'results.json', 'acceptance.json', 'ablation_summary.csv', 'paired_comparisons.csv', 'error_cases.jsonl']]
     write_json(output / 'final_artifact_manifest.json', {p.relative_to(PROJECT_ROOT).as_posix(): file_sha256(p) for p in manifest_files})
     status = read_project_status(PROJECT_ROOT)
     status.update(acceptance={'grade': 'B', 'report': 'reports/ablation_round1/final_report.md', 'resume_version': 'B'},
                   next_phase='completed_bounded_mechanism_study', final_evaluation_completed=True,
-                  next_actions=['study_actual_code_and_interview_guide'], no_further_test_tuning=True)
+                  next_actions=[], no_further_test_tuning=True)
     write_json(PROJECT_ROOT / 'reports/project_status.json', status)
-    print('汇总完成：B级机制分析型。报告、图表、简历素材和面试材料均已保存。', flush=True)
+    print('汇总完成：实验报告、统计结果和11张图表已保存。', flush=True)
     print(f'报告：{output / "final_report.md"}', flush=True)
-    print('完成后告诉我“分析完成”，我再核对生成文件。', flush=True)
     return 0
 
 
 def read_project_status(root):
     return json.loads((root / 'reports/project_status.json').read_text(encoding='utf-8'))
+
+
+def write_error_cases(root, output):
+    """Export representative existing SFT errors without generating career materials."""
+    from src.data.storage import read_jsonl
+    from src.evaluation.storage import append_prediction
+
+    chosen = {
+        'stat-test-fbf3c099c73ae7f90612': '没有正确利用指示变量平方仍为自身；最终数值错误，推导不足以细分所有原因。',
+        'stat-test-a3c0f37f5da79b93b45e': '读题与建模错误，相关样本均值的协方差项处理错误，兼有数值问题。',
+        'stat-test-b742f81b1c4b1ab5524d': '中间矩与最终减法均有错误；不能归为单纯格式问题。',
+        'stat-test-19b72a3ee065e8a467ce': '把后验概率写成事件交与事件并的比值，属于公式/建模错误。',
+    }
+    rows = read_jsonl(root / 'outputs/ablation_evaluation_round1/SFT/evaluation_predictions.jsonl')
+    case_path = output / 'error_cases.jsonl'
+    case_path.write_text('', encoding='utf-8')
+    for row in rows:
+        if row['id'] in chosen:
+            append_prediction(case_path, {**row, 'qualitative_review': chosen[row['id']],
+                                         'scope': 'representative_SFT_examples_not_exhaustive_semantic_counts'})
 
 
 if __name__ == '__main__':

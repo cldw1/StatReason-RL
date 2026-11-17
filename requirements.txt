@@ -1,4 +1,4 @@
-# Installed on Windows/Python 3.13; real BF16 LoRA SFT validated, GRPO runtime pending.
+# Validated on Windows/Python 3.13 with BF16 LoRA SFT and GRPO/DAPO-style runs.
 # Install the CUDA PyTorch wheel separately; never silently replace the existing wheel.
 -c constraints-torch.txt
 transformers==4.57.1
