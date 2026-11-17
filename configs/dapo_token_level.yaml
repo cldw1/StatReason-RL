@@ -1,0 +1,5 @@
+{
+  "extends": "grpo.yaml",
+  "experiment": {"name": "token_level_smoke"},
+  "trainer": {"loss_type": "dapo"}
+}

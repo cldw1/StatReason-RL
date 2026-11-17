@@ -1,0 +1,5 @@
+{
+  "extends": "grpo.yaml",
+  "experiment": {"name": "overlong_smoke"},
+  "mechanisms": {"overlong": {"enabled": true}}
+}

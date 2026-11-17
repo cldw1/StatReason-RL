@@ -1,0 +1,4 @@
+{
+  "extends": "smoke_common.yaml",
+  "experiment": {"name": "e0_vanilla_smoke", "ablation_id": "E0"}
+}

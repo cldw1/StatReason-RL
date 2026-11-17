@@ -1,0 +1,12 @@
+{
+  "extends": "sft.yaml",
+  "experiment": {"name": "sft_local_epoch1", "level": 1, "status": "planned"},
+  "sft": {"max_length": 768, "max_train_examples": null, "max_validation_examples": 64},
+  "trainer": {
+    "max_steps": 300, "save_steps": 50, "save_total_limit": 2,
+    "eval_strategy": "steps", "eval_steps": 50,
+    "load_best_model_at_end": true, "metric_for_best_model": "eval_loss", "greater_is_better": false,
+    "lr_scheduler_type": "cosine", "warmup_steps": 20, "logging_steps": 10
+  },
+  "resources": {"max_train_seconds": 600}
+}

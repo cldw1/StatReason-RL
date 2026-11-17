@@ -1,0 +1,19 @@
+{
+  "extends": "formal_common.yaml",
+  "experiment": {
+    "name": "e4_ablation100",
+    "ablation_id": "E4"
+  },
+  "trainer": {
+    "epsilon_high": 0.28,
+    "loss_type": "dapo"
+  },
+  "mechanisms": {
+    "dynamic_sampling": {
+      "enabled": true
+    },
+    "overlong": {
+      "enabled": true
+    }
+  }
+}

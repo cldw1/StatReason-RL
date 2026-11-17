@@ -1,0 +1,6 @@
+{
+  "extends": "smoke_common.yaml",
+  "experiment": {"name": "e4_dapo_combined_smoke", "ablation_id": "E4"},
+  "trainer": {"loss_type": "dapo", "epsilon_high": 0.28},
+  "mechanisms": {"dynamic_sampling": {"enabled": true}, "overlong": {"enabled": true}}
+}

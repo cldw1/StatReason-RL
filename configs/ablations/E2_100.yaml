@@ -1,0 +1,12 @@
+{
+  "extends": "formal_common.yaml",
+  "experiment": {
+    "name": "e2_ablation100",
+    "ablation_id": "E2"
+  },
+  "mechanisms": {
+    "dynamic_sampling": {
+      "enabled": true
+    }
+  }
+}

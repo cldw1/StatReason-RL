@@ -1,0 +1,8 @@
+{
+  "extends": "sft_local.yaml",
+  "experiment": {"name": "sft_diagnostic_balanced", "status": "planned"},
+  "data": {"version": "statreason-diagnostic-v2_1"},
+  "paths": {"dataset_release": "data/processed/statreason-diagnostic-v2_1"},
+  "trainer": {"max_steps": 280, "save_steps": 40, "eval_steps": 40},
+  "resources": {"max_train_seconds": 600}
+}

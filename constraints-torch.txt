@@ -1,0 +1,3 @@
+# Existing CUDA wheel; dependency resolution must fail rather than upgrade it.
+torch==2.8.0+cu128
+

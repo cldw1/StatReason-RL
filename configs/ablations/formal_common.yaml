@@ -1,0 +1,37 @@
+{
+  "extends": "smoke_common.yaml",
+  "experiment": {
+    "name": "ablation_100",
+    "level": 1
+  },
+  "data": {
+    "fingerprint": "8c54442d2a8074546ce8d9390b1348c588d633b004426435cc05708ee01b1038"
+  },
+  "rl_data": {
+    "max_train_examples": 400,
+    "smoke_task_priority": [
+      "conditional_probability",
+      "gsm8k_math",
+      "bayes",
+      "binomial_probability",
+      "discrete_expectation",
+      "discrete_variance",
+      "normal_mean_ci_endpoint",
+      "standard_error"
+    ],
+    "selection_note": "Frozen RL-only source-stratified 400-row pool. No model-success filtering, no development/test selection.",
+    "source_quotas": {
+      "openai/gsm8k": 300,
+      "statreason_synthetic": 100
+    }
+  },
+  "resources": {
+    "max_train_seconds": 1800
+  },
+  "trainer": {
+    "max_steps": 100,
+    "save_steps": 10,
+    "save_total_limit": 11,
+    "shuffle_dataset": true
+  }
+}

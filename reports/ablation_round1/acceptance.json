@@ -1,0 +1,17 @@
+{
+  "grade": "B",
+  "route": "mechanism_analysis",
+  "audit_passed": true,
+  "evaluated_checkpoints": 12,
+  "unique_questions": 400,
+  "actual_rl_optimizer_steps": 430,
+  "figures_created": 11,
+  "selected_resume_version": "B",
+  "limitations": [
+    "E2 has 30 not 100 steps",
+    "one seed",
+    "GSM8K train-reserved not official test",
+    "cost matches leave residual budget",
+    "no standalone E5 length-reward ablation"
+  ]
+}

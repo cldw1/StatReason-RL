@@ -1,0 +1,37 @@
+{
+  "extends": "model.yaml",
+  "experiment": {"name": "grpo_smoke", "stage": "rl", "level": 0, "status": "planned"},
+  "initialization": {"sft_adapter": "outputs/runs/sft_local_epoch1_20261115T173458Z_7e5291a1/adapter", "sft_adapter_sha256": "1ba65fe7e4537b6c5a18684adf4a6223e6fce8a4347414cba568e72062070cfa", "reference_policy": "frozen_copy_of_same_sft_adapter"},
+  "paths": {"dataset_release": "data/processed/statreason-v1"},
+  "rl_data": {
+    "max_train_examples": 16,
+    "smoke_task_priority": ["conditional_probability", "gsm8k_math", "bayes", "binomial_probability", "discrete_expectation", "discrete_variance", "normal_mean_ci_endpoint", "standard_error"],
+    "selection_note": "level0_reuse_audited_training_panel_prioritize_simple_tasks_functional_validation_only_not_formal_effect_comparison"
+  },
+  "resources": {"max_train_seconds": 180},
+  "trainer": {
+    "learning_rate": 0.00001, "per_device_train_batch_size": 1,
+    "gradient_accumulation_steps": 4, "max_steps": 4,
+    "num_generations": 4, "num_iterations": 2,
+    "steps_per_generation": 4, "max_prompt_length": 1024, "max_completion_length": 128,
+    "loss_type": "grpo", "scale_rewards": "group", "beta": 0.04,
+    "epsilon": 0.2, "epsilon_high": 0.2, "delta": null,
+    "importance_sampling_level": "token", "mask_truncated_completions": false,
+    "temperature": 0.7, "top_p": 0.8, "top_k": 20, "min_p": 0.0,
+    "repetition_penalty": 1.0, "generation_kwargs": {"do_sample": true, "max_time": 60, "num_beams": 1, "num_return_sequences": 1},
+    "disable_dropout": true, "shuffle_dataset": false, "reward_weights": [1.0],
+    "top_entropy_quantile": 1.0, "sync_ref_model": false, "use_liger_loss": false,
+    "use_vllm": false, "use_transformers_paged": false,
+    "bf16": true, "fp16": false, "gradient_checkpointing": true,
+    "gradient_checkpointing_kwargs": {"use_reentrant": false},
+    "optim": "adamw_torch", "weight_decay": 0.0, "max_grad_norm": 1.0,
+    "lr_scheduler_type": "constant", "warmup_steps": 0,
+    "logging_steps": 1, "save_steps": 2, "save_total_limit": 2,
+    "eval_strategy": "no", "report_to": ["tensorboard"],
+    "dataloader_num_workers": 0, "remove_unused_columns": false
+  },
+  "mechanisms": {
+    "dynamic_sampling": {"enabled": false, "selection_reward": "raw_binary_correctness", "max_resample_rounds": 2, "max_generated_tokens_per_batch": 1536, "on_budget_exhausted": "skip_update_and_log"},
+    "overlong": {"enabled": false, "soft_length": 96, "penalty_coefficient": 1.0}
+  }
+}

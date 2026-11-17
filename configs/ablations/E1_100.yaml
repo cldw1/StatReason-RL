@@ -1,0 +1,10 @@
+{
+  "extends": "formal_common.yaml",
+  "experiment": {
+    "name": "e1_ablation100",
+    "ablation_id": "E1"
+  },
+  "trainer": {
+    "epsilon_high": 0.28
+  }
+}

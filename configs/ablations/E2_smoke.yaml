@@ -1,0 +1,5 @@
+{
+  "extends": "smoke_common.yaml",
+  "experiment": {"name": "e2_dynamic_sampling_smoke", "ablation_id": "E2"},
+  "mechanisms": {"dynamic_sampling": {"enabled": true}}
+}

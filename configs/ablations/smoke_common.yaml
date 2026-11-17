@@ -1,0 +1,24 @@
+{
+  "extends": "../grpo.yaml",
+  "experiment": {"name": "ablation_smoke", "level": 0},
+  "rl_data": {
+    "max_train_examples": 16,
+    "source_quotas": {"openai/gsm8k": 12, "statreason_synthetic": 4},
+    "selection_note": "Implementation smoke only: source-stratified RL-only 16-row pool; no test selection. Formal pool and budget remain unfrozen."
+  },
+  "trainer": {
+    "top_p": 1.0,
+    "top_k": 0,
+    "max_steps": 4,
+    "save_steps": 2,
+    "shuffle_dataset": false
+  },
+  "mechanisms": {
+    "dynamic_sampling": {
+      "enabled": false,
+      "max_resample_rounds": 8,
+      "max_generated_tokens_per_batch": 4096,
+      "on_budget_exhausted": "stop_training_before_update_and_log"
+    }
+  }
+}

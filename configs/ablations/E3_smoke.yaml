@@ -1,0 +1,5 @@
+{
+  "extends": "smoke_common.yaml",
+  "experiment": {"name": "e3_token_loss_smoke", "ablation_id": "E3"},
+  "trainer": {"loss_type": "dapo"}
+}

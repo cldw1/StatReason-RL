@@ -1,0 +1,7 @@
+{
+  "extends": "formal_common.yaml",
+  "experiment": {
+    "name": "e0_ablation100",
+    "ablation_id": "E0"
+  }
+}

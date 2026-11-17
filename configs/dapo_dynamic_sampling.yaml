@@ -1,0 +1,5 @@
+{
+  "extends": "grpo.yaml",
+  "experiment": {"name": "dynamic_sampling_smoke"},
+  "mechanisms": {"dynamic_sampling": {"enabled": true}}
+}

@@ -1,0 +1,24 @@
+{
+  "extends": "grpo.yaml",
+  "experiment": {
+    "name": "grpo_local_24",
+    "level": 1,
+    "status": "planned"
+  },
+  "rl_data": {
+    "max_train_examples": null,
+    "selection_note": "all_4400_disjoint_rl_records_seeded_random_sampling_no_reward_filtering"
+  },
+  "resources": {
+    "max_train_seconds": 600
+  },
+  "trainer": {
+    "max_steps": 24,
+    "shuffle_dataset": true,
+    "save_steps": 4,
+    "save_total_limit": 2
+  },
+  "data": {
+    "fingerprint": "6e5c04072e07415fdea801010d6d70024b5dfb3ce2f0b8cbf702273943e5b294"
+  }
+}

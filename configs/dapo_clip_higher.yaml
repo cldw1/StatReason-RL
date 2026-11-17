@@ -1,0 +1,5 @@
+{
+  "extends": "grpo.yaml",
+  "experiment": {"name": "clip_higher_smoke"},
+  "trainer": {"epsilon_high": 0.28}
+}

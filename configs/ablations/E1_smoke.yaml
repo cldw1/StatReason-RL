@@ -1,0 +1,5 @@
+{
+  "extends": "smoke_common.yaml",
+  "experiment": {"name": "e1_clip_higher_smoke", "ablation_id": "E1"},
+  "trainer": {"epsilon_high": 0.28}
+}

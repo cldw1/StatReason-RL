@@ -1,0 +1,6 @@
+{
+  "extends": "grpo.yaml",
+  "experiment": {"name": "dapo_combined_smoke"},
+  "trainer": {"epsilon_high": 0.28, "loss_type": "dapo"},
+  "mechanisms": {"dynamic_sampling": {"enabled": true}, "overlong": {"enabled": true}}
+}

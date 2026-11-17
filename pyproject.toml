@@ -1,0 +1,6 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra --basetemp=outputs/pytest_tmp"
+markers = ["gpu: requires a working CUDA GPU", "integration: loads model weights"]
+

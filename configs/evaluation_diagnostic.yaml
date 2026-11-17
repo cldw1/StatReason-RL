@@ -1,0 +1,12 @@
+{
+  "extends": "evaluation.yaml",
+  "experiment": {"name": "diagnostic_validation_100"},
+  "data": {"version": "statreason-diagnostic-v2"},
+  "paths": {"dataset_release": "data/processed/statreason-diagnostic-v2"},
+  "resources": {"max_evaluation_seconds": 600},
+  "evaluation": {
+    "statistics_per_task": 10, "gsm8k_count": 30, "max_examples": 100,
+    "batch_size": 4, "panel_frozen_for_diagnostic_comparison": true,
+    "max_time_per_completion_seconds": 60
+  }
+}

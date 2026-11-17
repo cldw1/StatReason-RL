@@ -1,0 +1,16 @@
+{
+  "extends": "model.yaml",
+  "experiment": {"name": "base_development", "stage": "evaluation", "level": 0, "status": "planned"},
+  "evaluation": {
+    "scope": "development_validation_only", "frozen": false,
+    "statistics_per_task": 1, "gsm8k_count": 1, "max_examples": 8,
+    "max_prompt_tokens": 1024, "max_new_tokens": 192,
+    "max_time_per_completion_seconds": 60,
+    "do_sample": true, "temperature": 0.7, "top_p": 0.8, "top_k": 20, "min_p": 0.0,
+    "num_return_sequences": 1, "batch_size": 1,
+    "default_mode": "non-thinking", "metric": "sampled_pass_at_1",
+    "truncation_policy": "strict_incorrect"
+  },
+  "paths": {"dataset_release": "data/processed/statreason-v1", "evaluation_root": "outputs/evaluations"},
+  "resources": {"max_model_download_gib": 2.0}
+}
