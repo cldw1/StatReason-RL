@@ -4,7 +4,7 @@
 
 `scripts/05_train_sft.py` 调用 `src/training/sft.py:run_sft_cli()`。函数从固定 Qwen 快照加载 Tokenizer，处理并审计标签，加载 BF16 Base，注入 LoRA，交给 Transformers Trainer 进行真实反传和优化器更新，最后保存 adapter 并在重新加载的 Base 上核对权重和 logits。
 
-本阶段使用 Transformers Trainer 和 PEFT，未依赖 TRL SFTTrainer 的自动对话掩码。这样可以直接检查本项目究竟训练了哪些 Token。后续 GRPO 仍按计划使用经过核对的 TRL 接口。
+SFT使用Transformers Trainer和PEFT，自行构造并审计助手标签掩码。GRPO/DAPO已基于TRL 0.23.1完成集成与五组真实训练；两种阶段分别使用监督交叉熵与强化学习目标。
 
 ## LoRA 如何改变模型
 
@@ -95,7 +95,7 @@ RL 数据和官方测试集不会被 SFT 入口读取。训练数据与编码标
 
 尖括号为待替换路径。恢复使用完整 Trainer 检查点，包含 optimizer、scheduler、TrainerState 和 RNG；仅加载 adapter 是权重续训，不等价于严格恢复。
 
-生成评测与 Base 使用相同题目、提示、采样参数、192 Token 上限和单题 seed。SFT 后回答变长可能提高截断率；数值正确、格式有效和截断分别报告，不通过放宽判题补偿。
+早期开发入口使用192 Token上限及单题seed，只用于历史开发比较。最终统一评测由`scripts/26_evaluate_ablations.py`执行：Base、SFT与RL检查点使用同一400题、Non-thinking、256 Token、temperature=0.7、top_p=1、top_k=0、batch=4，每题一次采样。数值正确、格式有效与截断分别报告，不通过放宽判题补偿。详见[最终报告](../reports/ablation_round1/final_report.md)。
 
 ## 推荐代码阅读顺序
 

@@ -2,6 +2,8 @@
 
 本项目在已有 Qwen3-0.6B 的 SFT LoRA 上继续强化学习，不是从零训练模型。实际后端为固定 TRL 0.23.1、Transformers 4.57.1、PEFT 0.17.1；`AuditedGRPOTrainer`保留TRL策略损失，同时增加参考策略、概率、奖励和恢复审计。
 
+正式E0–E4已完成共430次参数更新；共同RL池为400题。本文保留历史4步冒烟、24步训练的具体排错证据，并与正式实验配置区分。正式比较、统计区间与成本见[最终报告](../reports/ablation_round1/final_report.md)。
+
 ## 建议阅读顺序
 
 | 文件/函数 | 阅读目标 |
@@ -20,11 +22,11 @@
 
 ## 题目与rollout
 
-每道题的prompt只包含系统提示和题面，标准答案留给奖励函数。通过`apply_chat_template(..., enable_thinking=False)`预先生成纯文本prompt；TRL不会再次给它套一层对话模板。长度超过1024 Token的完整记录整体排除，不通过左截断保留半道题。当前完整4400条RL池均符合长度上限，最长311 Token。
+每道题的prompt只包含系统提示和题面，标准答案留给奖励函数。通过`apply_chat_template(..., enable_thinking=False)`预先生成纯文本prompt；TRL不会再次给它套一层对话模板。长度超过1024 Token的完整记录整体排除，不通过左截断保留半道题。历史完整4400条RL池均符合长度上限，最长311 Token；正式五组固定其中按来源配比选出的400题，未按最终评测正确率筛选。
 
 同题生成G=4个回答。二元奖励为：完整结束、最终答案格式正确且数值通过原有容差，奖励1；否则0。生成长度上限128 Token，截断样本严格奖励0。`mask_truncated_completions=False`表示它们仍进入损失；这是独立于奖励处理的开关。
 
-TRL按第一个EOS构造completion mask，包含EOS、排除后续padding。当前训练EOS为Tokenizer的`im_end`；固定开发评测沿用已有的统一停止配置与192 Token上限，全部模型相同。
+TRL按第一个EOS构造completion mask，包含EOS、排除后续padding。训练EOS为Tokenizer的`im_end`。历史开发评测上限为192 Token；正式12检查点统一评测为Non-thinking、256 Token、temperature=0.7、top_p=1、top_k=0、batch=4，与训练128 Token上限分别记录。
 
 ## 组内优势
 
@@ -44,7 +46,7 @@ $$\bar R=\frac1G\sum_i R_i,\quad s_R=\sqrt{\frac{\sum_i(R_i-\bar R)^2}{G-1}},\qu
 | 旧策略 | rollout生成时的概率，用作比率分母 | 缓冲为脱离梯度的张量，固定两轮 |
 | 参考策略 | 限制偏离共同SFT | 独立冻结SFT模型，整个run不更新 |
 
-这里的概率目标沿用TRL 0.23.1语义，使用温度缩放后的**密集**分布：$\pi_T(\cdot|h)=\operatorname{softmax}(z_\theta(h)/T)$，$T=0.7$。采样另施加top-k=20和top-p=0.8，所以实际采样分布与目标密集分布有区别。本项目没有声称对过滤采样做了精确重要性修正。
+概率目标沿用TRL 0.23.1语义，使用温度缩放后的**密集**分布：$\pi_T(\cdot|h)=\operatorname{softmax}(z_\theta(h)/T)$，$T=0.7$。正式E0–E4使用top_k=0、top_p=1，不施加这两项词表过滤，使采样与目标概率采用相同的温度分布。历史24步实验使用top_k=20、top_p=0.8，存在过滤采样与密集目标分布的区别，未做精确重要性修正；其结果单独保留，不混入正式消融。
 
 重要性比率为$r_{i,t}=\exp(u_{\theta,i,t}-u_{\mathrm{old},i,t})$。当前、旧、参考的密集logprob都用同一温度和FP32概率计算。每行旧logprob的有效Token哈希随rollout保存，并在每次训练时核对，避免第二轮把分母替换成当前概率。
 
@@ -88,16 +90,16 @@ $$L=\frac1G\sum_{i=1}^G\frac{\sum_t m_{i,t}\ell_{i,t}}{\max(1,\sum_t m_{i,t})}.$
 
 运行目录保留完整配置、依赖、数据与SFT指纹、TRL源码哈希、rollout、policy审计、训练指标、adapter与优化器检查点。新建run保存关键训练源码快照。声明的数据指纹与实际记录不一致时拒绝训练，不静默修改冻结配置。
 
-`max_steps`和`save_steps`必须是`num_iterations`的整数倍；本地每4步保存一次，检查点都落在完整rollout复用周期边界。中间周期的buffer不作为可恢复状态。
+`max_steps`和`save_steps`必须是`num_iterations`的整数倍；历史24步实验每4步保存，正式五组每10步保存，均落在完整rollout复用周期边界。中间周期的buffer不作为可恢复状态。
 
 已经从完整24步实验的第20步检查点，在独立目录实际补跑到24步：额外生成529 Token；Token、奖励、优势、旧/参考概率相同；224个最终LoRA张量逐位相等、最大差0。结论只适用于本机、固定依赖与完整周期边界，不推广为跨硬件按位一致。
 
 恢复严格检查代码、配置、依赖、数据和SFT哈希。已保存run绑定其训练时源码；若当前代码继续开发，应从匹配源码版本恢复，或先用当前代码建立新run再验证，不能绕过身份检查。
 
-## 本地结果与阅读材料
+## 历史开发结果与正式对照
 
 24步实验：12题、48回答、3777生成Token，平均奖励0.6042，8/12组零方差；真正改变目标的裁剪约3/7554 Token曝光。固定100题中SFT与GRPO均19/100，各有3题独对；差值Bootstrap95%区间[-5,+5]个百分点。没有观察到可确证的能力提升或熵坍塌。
 
-数据和图见`reports/grpo/report.md`、`results.json`、`sample_rollout.json`、`changed_correctness_cases.json`与`resume_verification.json`。当前还没有DAPO正式对照结果。
+上述历史原始材料保留在本地`reports/grpo/`，不随公开仓库分发。正式E0–E4已运行并采用同一400题评测：E0、E1、E3、E4各100步，E2因补采上限停在30步。五组共同30步比较与四个100步终点分别报告，结果见[最终报告](../reports/ablation_round1/final_report.md)和[汇总表](../reports/ablation_round1/ablation_summary.csv)。
 
 官方参考：[TRL 0.23.1 GRPO文档](https://huggingface.co/docs/trl/v0.23.1/en/grpo_trainer)、[对应Trainer源码](https://github.com/huggingface/trl/blob/v0.23.1/trl/trainer/grpo_trainer.py)、[生成解包工具源码](https://github.com/huggingface/trl/blob/v0.23.1/trl/models/utils.py)、[DeepSeekMath论文](https://arxiv.org/abs/2402.03300)。本项目以已安装源码和实际运行结果验收API。

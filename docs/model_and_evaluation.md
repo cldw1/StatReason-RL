@@ -1,6 +1,8 @@
 # 模型加载、Tokenizer 与开发评测
 
-## 当前入口
+正式统一评测已完成12个检查点、同一400题，采用Non-thinking、256 Token、temperature=0.7、top_p=1、top_k=0、batch=4、每题一次采样。本文中8题、192 Token和单题seed的入口是早期开发流程，不作为最终能力结论。当前结果见[最终报告](../reports/ablation_round1/final_report.md)。
+
+## 历史开发入口
 
 `scripts/02_model_inference.py` 默认只测试一题，用于模型加载与模板探测。`scripts/04_evaluate_base.py` 默认使用八道固定验证题：七类统计题各一道，再加一道 GSM8K。二者调用 `src/evaluation/runner.py:run_cli()`，不会读取官方测试集。
 
@@ -10,7 +12,7 @@
 .\.venv\Scripts\python.exe scripts\04_evaluate_base.py --download-model --mode both
 ```
 
-这条命令在本人的终端执行，因为当前受限执行环境不能连接本机代理。它下载公开模型、不调用付费 API，不启动云 GPU。下载前查询官方文件大小，选定文件总大小超过 2 GiB 或大小不完整时停止。之后生成最多 8题×2模式×192 Token；单条生成还有 60 秒的软时间上限，不承诺未经实测的完成时间。
+该入口下载公开模型，不调用付费API或启动云GPU。下载前查询官方文件大小，选定文件总大小超过2 GiB或大小不完整时停止。随后执行最多8题×2模式×192 Token的历史冒烟评测；单条生成还有60秒软时间上限。正式400题入口不采用这组短预算配置。
 
 只下载不生成：
 
@@ -40,9 +42,9 @@ Tokenizer 将文字映射成 Token ID；chat template 按模型约定把 system/
 
 `prompts.py:build_messages()` 只读取 record.question，不将 answer 或 solution 放进提示。系统提示要求简短计算过程和唯一最后答案行。`generate_completion()` 调用 `apply_chat_template(..., add_generation_prompt=True, enable_thinking=...)`。
 
-控制器的 mode 参数逐次决定 enable_thinking；每条预测保存真实布尔值。两种模式在开发对比中使用相同温度 0.7、top_p 0.8、top_k 20 和长度上限，仅改变模板的思考开关。因此它是一个受短预算约束的开发对照，不是各模式独立调优后的官方基准复现。
+历史控制器的mode逐次决定enable_thinking，每条预测保存真实布尔值。早期两模式比较使用相同温度0.7、top_p=0.8、top_k=20及192 Token上限，只改变思考开关，属于短预算工程诊断，不是充分生成预算下的能力对照。正式冻结评测使用前述Non-thinking、256 Token及不做top-k/top-p过滤的配置。
 
-官方模型卡给出了各模式的建议采样设置。后续根据验证集实测选择并冻结统一评测配置，不能把两模式八题结果作为稳定能力结论。
+正式统一评测配置已冻结，不能依据最终400题继续调整。两模式八题结果仅保留用于历史排错；后续另行研究Thinking能力时，需要独立开发题组与充分长度预算。
 
 ## 只判生成的回答
 
@@ -74,8 +76,8 @@ EOS 与截断分开判断：扫描新 Token 中的第一个 EOS 并去掉其后�
 
 resource_metrics 的 session_wall_seconds 仅是当前进程时间；已记录生成 Token/耗时包括恢复前的有效记录。中断时尚未返回的生成成本无法精确观测，明确标记未知，不能偷偷按零成本解释。
 
-## 当前验证边界
+## 加载测试与当前实验范围
 
-当前完整测试 127 项通过，包含真实 GPU 上的随机初始化微型 Qwen3 生成与保存/重载测试。该微型模型只有 106880 个参数，没有加载目标权重，其显存和耗时不能用于估算正式模型性能。目标 Qwen3-0.6B 已在单独的真实运行中完成 Base/SFT 开发评测。
+早期模型加载阶段记录127项测试通过，包括真实GPU上的随机初始化微型Qwen3生成与保存/重载测试；这是历史阶段的测试数量，不代表最终工程全部测试总数。该微型模型只有106880个参数，未加载目标权重，其显存和耗时不能用于估算正式模型性能。目标Qwen3-0.6B随后完成SFT、五组RL运行及统一评测。
 
-真实 Base、SFT 与资源结果分别见 `reports/phase3_report.md`、`phase4_report.md`。下一步以固定 SFT adapter 实现 GRPO，不能把已完成的 SFT 交叉熵训练描述为强化学习。
+历史Base/SFT阶段报告保存在本地`reports/phase3_report.md`和`phase4_report.md`，不随公开仓库分发。公开结果见[最终报告](../reports/ablation_round1/final_report.md)；GRPO旧策略概率、参数更新及DAPO机制已实际执行，不能将SFT交叉熵训练与RL更新混称。

@@ -49,6 +49,50 @@ def model_table(result):
     return rows
 
 
+def make_summary_figure(result, destination):
+    """Render saved results with explicit checkpoint-versus-whole-run token cost."""
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    destination.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(12, 5.7))
+    ax.axis('off')
+    content = []
+    for name in result['models']:
+        metric = result['metrics'][name]
+        content.append([
+            name, str(metric['strict_correct_count']) + '/400',
+            str(metric['by_source']['openai/gsm8k']['strict_correct_count']) + '/200',
+            str(metric['by_source']['statreason_synthetic']['strict_correct_count']) + '/200',
+            percentage(metric['format_valid_rate']), percentage(metric['truncation_rate']),
+            str(result['models'][name].get('training_generated_tokens', '-')),
+        ])
+    table = ax.table(cellText=content,
+                     colLabels=['Model', 'Strict', 'GSM8K', 'Stats', 'Format', 'Truncated',
+                                'RL tokens\nat checkpoint'], loc='center')
+    table.auto_set_font_size(False)
+    table.set_fontsize(9)
+    table.scale(1, 1.55)
+    for column in range(7):
+        table[0, column].set_height(table[0, column].get_height() * 1.35)
+    ax.set_title('Complete ablation evaluation (E2/100 missing; never imputed)')
+    checkpoint_tokens = result['models']['E2_step30']['training_generated_tokens']
+    whole_run_tokens = result['training']['rows']['E2']['total_generated_tokens']
+    tail_tokens = whole_run_tokens - checkpoint_tokens
+    fig.text(.5, .075, 'RL token column: generation through each checkpoint; later attempts are excluded.',
+             ha='center', fontsize=7)
+    fig.text(.5, .045,
+             f'E2: {checkpoint_tokens:,} at step 30 + {tail_tokens:,} subsequent untrained tokens '
+             f'= {whole_run_tokens:,} whole-run generation cost.', ha='center', fontsize=7)
+    fig.text(.5, .015, EVAL_NOTE, ha='center', fontsize=7)
+    fig.tight_layout(rect=[0, .13, 1, 1])
+    path = destination / '09_ablation_summary.png'
+    fig.savefig(path, dpi=180, bbox_inches='tight')
+    plt.close(fig)
+    return path
+
+
 def make_figures(result, destination):
     import matplotlib
     matplotlib.use('Agg')
@@ -161,18 +205,7 @@ def make_figures(result, destination):
         ax.grid(axis='y', alpha=.2)
     save(fig, '08_generation_cost.png')
 
-    fig, ax = plt.subplots(figsize=(12, 5))
-    ax.axis('off')
-    content = []
-    for name in names:
-        p = result['metrics'][name]
-        content.append([name, str(p['strict_correct_count'])+'/400', str(p['by_source']['openai/gsm8k']['strict_correct_count'])+'/200',
-                        str(p['by_source']['statreason_synthetic']['strict_correct_count'])+'/200', percentage(p['format_valid_rate']),
-                        percentage(p['truncation_rate']), str(result['models'][name].get('training_generated_tokens', '-'))])
-    table = ax.table(cellText=content, colLabels=['Model', 'Strict', 'GSM8K', 'Stats', 'Format', 'Truncated', 'RL tokens'], loc='center')
-    table.auto_set_font_size(False); table.set_fontsize(9); table.scale(1, 1.55)
-    ax.set_title('Complete ablation evaluation (E2/100 missing; never imputed)')
-    save(fig, '09_ablation_summary.png', EVAL_NOTE)
+    files.append(make_summary_figure(result, destination))
 
     fig, grid = plt.subplots(2, 2, figsize=(10, 7))
     axes = grid.reshape(-1)
@@ -218,7 +251,7 @@ def write_report(root, result, charts):
          'mcnemar_p': c['mcnemar_exact_two_sided_p'], 'mcnemar_holm_p': c['mcnemar_holm_adjusted_p']}
         for key, c in comparisons.items()])
     lines = ['# StatReason-RL：GRPO/DAPO受控机制实验报告', '',
-             '最终路线：B级机制分析型（预算受限适配）。在真实训练、统一判题与完整结果校验通过后形成结论；不宣称复现论文规模或证明DAPO显著优于GRPO。', '',
+             '本文报告预算受限条件下的GRPO/DAPO受控机制实验。结论基于真实训练、统一判题和完整结果校验，不宣称复现论文规模或证明DAPO显著优于GRPO。', '',
              '## 模型、数据与方法', '',
              'Qwen3-0.6B，BF16/SDPA，RTX 5060 Laptop 8GB。LoRA r=8、alpha=16，q/k/v/o四类投影，共224个可训练张量、2,293,760参数。共用同一个SFT适配器（SFT运行300步，验证loss选择150步），RL池400题：GSM300、统计100。', '',
              '基于TRL 0.23.1集成Rollout、裁剪与损失，项目实现奖励、独立SFT参考、在线补采、长度整形、数学审计和统计分析；不是从零手写整个Trainer。每组独立初始化，G=4、旧概率复用2次、LR=1e-5、beta=0.04、种子42。E0显式loss_type=grpo；E1上裁剪0.28；E2在线筛选；E3 token损失；E4四机制组合。E4保留共同KL，区别于论文去KL的完整配方。', '',
@@ -250,16 +283,18 @@ def write_report(root, result, charts):
               '## 正确性与错误案例', '',
               f"重新严格判题全部{result['prediction_count']}条评测回答，与保存结果一致；200道统计标准答案独立计算通过，最大绝对误差{result['gold_audit']['max_absolute_recompute_error']:.3g}。这不代表所有GSM答案都经独立人工证明。", '',
               '代表性错误包括：指标变量方差没有正确代入p(1-p)；相关样本均值标准误遗漏或错算协方差；将条件独立误当成无条件独立的贝叶斯题。对应原文保存在error_cases.jsonl。高格式有效率与极低统计正确率同时出现，说明本轮领域推理缺陷没有解决；不会通过放宽容差、删除难题或继续使用测试集调参修饰结果。', '',
-              '## 图表', '']
+              '## 图表', '',
+              f"汇总图09的RL Token列以及ablation_summary.csv的training_generated_tokens_at_checkpoint列均统计截至各检查点的累计生成量；成本图08与上文总成本表统计完整运行。E2第30步检查点为{result['models']['E2_step30']['training_generated_tokens']:,} Token，停止前额外补采{tr['E2']['total_generated_tokens']-result['models']['E2_step30']['training_generated_tokens']:,} Token未进入新更新，完整运行合计{tr['E2']['total_generated_tokens']:,} Token。", '']
     for path in charts:
         lines += [f'![{path.stem}](figures/{path.name})', '']
     lines += ['图中直接显示原始更新序列，没有挑选有利区间；奖励每两次更新共用一组样本。准确率图从0开始，显示完整0–100%范围和Wilson区间。E2曲线在30步结束，不延长或补造至100步。', '',
-              '## 复现与交付', '', '```powershell',
+              '## 复现与公开产物', '',
+              '公开仓库提供代码、配置、依赖、测试、报告、CSV、结果JSON、图表和少量错误样例。完整原始回答、训练审计、冻结计划、处理后数据及模型/适配器检查点保存在本地，未随仓库分发。阅读公开结果无需模型；以下命令仅适用于已具备完整本地实验产物的环境。重新审计不能仅依赖结果JSON，具体前置条件见[运行指南](../../docs/training_guide.md)。', '', '```powershell',
               '.venv\\Scripts\\python.exe scripts/24_run_ablations.py --status',
               '.venv\\Scripts\\python.exe scripts/26_evaluate_ablations.py --execute',
               '.venv\\Scripts\\python.exe scripts/27_finalize_ablation_report.py', '```', '',
-              '原始数据、配置、检查点哈希、代码快照、逐题回答、采样成本与资源记录保留。报告、CSV、PNG和校验清单来自这些记录。没有使用付费GPU，没有推送GitHub。简历优先采用机制分析版本，见docs/resume_materials.md；架构、公式与20个面试问题见docs/interview_guide.md。', '',
-              '本轮停止扩展训练，完成预算受限B级机制分析；后续可在新增独立开发/测试数据与额外预算下研究多种子、更强数学底座、严格等Token更新和独立长度消融。当前测试集不得再用作模型选择。']
+              '报告、CSV、PNG和本地校验清单均由保存的真实运行记录生成。公共结果表与完整运行的计算成本分别注明统计口径，未对失败样本或提前停止运行作删除或补造。', '',
+              '本轮结论限定为预算受限的机制分析。后续可在新增独立开发/测试数据与额外预算下研究多种子、更强数学底座、严格等Token更新和独立长度消融。当前测试集不得再用作模型选择。']
     (out / 'final_report.md').write_text('\n'.join(lines) + '\n', encoding='utf-8')
 
 
